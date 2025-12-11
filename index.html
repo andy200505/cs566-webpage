@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inpainting of Irregularly Damaged Images</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f5f5f7;
+      color: #222;
+      line-height: 1.6;
+    }
+
+    header.hero {
+      background: linear-gradient(135deg, #1f3c88, #3f72af);
+      color: #fff;
+      padding: 2.5rem 1.5rem 2rem;
+    }
+
+    .hero-inner {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2.2rem;
+    }
+
+    .hero p {
+      margin: 0.15rem 0;
+    }
+
+    nav {
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    nav a {
+      color: #e0ecff;
+      text-decoration: none;
+      margin-right: 1.25rem;
+      padding-bottom: 0.15rem;
+      border-bottom: 2px solid transparent;
+    }
+
+    nav a:hover,
+    nav a:focus {
+      border-bottom-color: #fff;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    section {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.03),
+        0 4px 14px rgba(0, 0, 0, 0.04);
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-size: 1.4rem;
+      color: #1f3c88;
+    }
+
+    h3 {
+      margin-top: 1.1rem;
+      margin-bottom: 0.35rem;
+      font-size: 1.1rem;
+      color: #333;
+    }
+
+    ul {
+      padding-left: 1.25rem;
+      margin-top: 0.25rem;
+    }
+
+    li + li {
+      margin-top: 0.15rem;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 768px) {
+      .two-column {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      }
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 0.1rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #e6edff;
+      color: #1f3c88;
+      margin-right: 0.25rem;
+      margin-top: 0.25rem;
+    }
+
+    .timeline {
+      list-style: none;
+      padding-left: 0;
+      margin: 0.2rem 0 0;
+    }
+
+    .timeline li {
+      margin-bottom: 0.35rem;
+    }
+
+    .timeline span {
+      font-weight: 600;
+      color: #1f3c88;
+      margin-right: 0.35rem;
+      white-space: nowrap;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .placeholder-card {
+      border-radius: 6px;
+      border: 1px solid #dde1ee;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      background: #fff;
+    }
+
+    .placeholder-card strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    
+    .video-container {
+      margin: 0.75rem auto 0;
+      max-width: 800px;
+    }
+
+    .video-container iframe {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 0;
+      border-radius: 8px;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.12),
+        0 6px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .slides-link {
+      margin-top: 0.75rem;
+      text-align: center;
+    }
+
+    .slides-link a {
+      font-weight: 600;
+      text-decoration: none;
+      color: #1f3c88;
+    }
+
+    .slides-link a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem 2.5rem;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    footer a {
+      color: #1f3c88;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+    .impl-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 1rem;
+  }
+
+  .impl-left-box {
+    flex: 1;
+    min-width: 300px;
+    padding: 1rem 1.25rem;
+    background: #f8f9fc;
+    border: 1px solid #d0d4dd;
+    border-radius: 10px;
+  }
+
+  .impl-img {
+    flex: 1;
+    min-width: 260px;
+    text-align: center;
+  }
+
+  .impl-img img {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 10px;
+  }
+  .impl-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #d9ddea;
+    padding: 1.5rem;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.05),
+      0 6px 20px rgba(0,0,0,0.06);
+    margin-bottom: 1.5rem;
+  }
+  .training-code__link {
+  font-weight: 600;
+  color: #1f3c88;
+  text-decoration: none;
+  }
+  .training-code__link:hover {
+    text-decoration: underline;
+  }
+  
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <h1>Inpainting of Irregularly Damaged Images</h1>
+      <p>CS566 Project</p>
+      <p>Team Members: Andy Yu, Mile Huang, Taekyoung (James) Lee</p>
+      <p>Emails: syu343@wisc.edu, mhuang259@wisc.edu, tlee267@wisc.edu</p>
+
+      <nav>
+        <a href="#motivation">Motivation</a>
+        <a href="#approach">Approach</a>
+        <a href="#implementation">Implementation</a>
+        <a href="#results">Results</a>
+        <a href="#discussion">Discussion</a>
+        <a href="#timeline">Timeline</a>
+        <a href="#presentation">Project Presentation</a>
+        <a href="#training-code">Code</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="motivation">
+      <h2>Motivation</h2>
+      <p>
+        Sometimes, images like photos taken and online images may be
+        partially destroyed by various reasons. Restoring these images traditionally needs an artist
+        using tools like Photoshop, or just start from the beginning and redo all the processes, 
+        which is slow, subjective, and not accessible to everyone.
+      </p>
+      <p>
+        Our goal is to make this restoration process fast, automatic, and convenient:
+      </p>
+      <ul>
+        <li>
+          <strong>Fast restoration</strong> – It works directly on the damaged
+          image without requiring the original, undamaged version.
+        </li>
+        <li>
+          <strong>Visual quality</strong> – Missing regions are filled so that
+          the completed image looks realistic and coherent to a human viewer.
+        </li>
+        <li>
+          <strong>Convenience</strong> – Users only need to provide a damaged
+          image. The system handles the rest, which makes it practical for almost 
+          everyone with or without professional knowledge.
+        </li>
+        <li>
+          <strong>Cultural preservation</strong> – Old photos, paintings, and
+          digital archives can be restored at scale instead of being manually
+          retouched one by one.
+        </li>
+      </ul>
+    </section>
+
+    <section id="approach">
+      <h2>Approach</h2>
+      <p>
+        Given a damaged image and a binary mask indicating missing pixels, 
+        the trained model can predict content to fill the holes while preserving 
+        valid regions.
+      </p>
+      <h3>Pipeline</h3>
+      <ul>
+        <li>Start from a image dataset.</li>
+        <li>Generate binary masks (both rectangular and irregular) to simulate damaged parts and apply them to images.</li>
+        <li>Train a <strong>Partial Convolution U-Net</strong> to inpaint the masked images.</li>
+        <li>
+          Fine-tune the pre-trained U-Net with a <strong>PatchGAN discriminator</strong> to make 
+          the inpainted regions sharper and more realistic.
+        </li>
+        <li>
+          Evaluate quality using both pixel-wise and perceptual metrics, and compare
+          the inpainted images from baseline model.
+        </li>
+      </ul>
+    </section>
+
+    <section id="implementation">
+      <h2>Implementation</h2>
+      <div class="impl-card">
+          <h3>Dataset</h3>
+          <div class="impl-row">
+            <div style="flex:1; min-width:300px;">
+              <ul>
+                <li><strong>Dataset:</strong> ILSVRC2012 (ImageNet) with 1,000 object categories and roughly 1,300 images per category.</li>
+                <li><strong>Sampling:</strong> For each class, 100 images are used for training and 10 for evaluation (total 100k for training and 10k for validation).</li>
+                <li><strong>Data augmentation:</strong> resize to 256×256 and random horizontal flips and rotations.</li>
+              </ul>
+            </div>
+            <div class="impl-img">
+              <img src="https://drive.google.com/thumbnail?id=1n8rsYau5SFaDYmL4ODoJMADuhSbaSZ8p&sz=w800"
+                  style="width:100%; max-width:300px; border-radius:10px;">
+            </div>
+
+          </div>
+        </div>
+
+        <div class="impl-card">
+          <h3>Mask Design</h3>
+
+          <div class="impl-row">
+            <div style="flex:1; min-width:300px;">
+              <ul>
+                <li>Binary mask where 1 marks valid pixels and 0 marks missing pixels.</li>
+                <li><strong>Intermediate Approach:</strong> randomly placed fixed-size rectangular masks.</li>
+                <li><strong>Final Approach:</strong> irregular masks for more realistic damage patterns.</li>
+              </ul>
+            </div>
+            <div class="impl-img">
+              <img src="https://drive.google.com/thumbnail?id=1dc1jF4Y920aP8Fso54X7pqYEfqxlVLye&sz=w800"
+                  style="width:100%; max-width:300px; border-radius:10px;">
+            </div>
+
+          </div>
+        </div>
+
+
+        <div class="impl-card">
+          <h3>Model Architecture</h3>
+
+          <div class="impl-row">
+            <div style="flex:1; min-width:300px;">
+              <p><strong>Generator:</strong> Traditional U-Net and partial convolution U-Net (replace all convolution layers to partial convolution layers).</p>
+
+              <p>Each partial convolution renormalizes by the number of valid pixels and updates the mask so that valid regions gradually grow into the hole.</p>
+
+              <p><strong>Discriminator:</strong> PatchGAN that operates on local image patches of the inpainted images to encourage realistic contents that are closer to original images.</p>
+            </div>
+            <div style="flex:1; min-width:260px; text-align:center; display:flex; flex-direction:column; gap:1rem;">
+              <img src="https://drive.google.com/thumbnail?id=1YQm4Qg2v3RsaXc-cJ2myRXg9x3F6AZI_&sz=w800"
+                  style="width:100%; max-width:300px; border-radius:10px;">
+              <img src="https://drive.google.com/thumbnail?id=1EravVQEhl3MqaqSR4AmlXSEdOm4J2bZC&sz=w800"
+                  style="width:100%; max-width:300px; border-radius:10px;">
+            </div>
+
+          </div>
+        </div>
+
+
+
+          <div class="impl-card">
+            <h3>Training Setup</h3>
+
+            <div style="flex:1; min-width:300px;">
+              <ul>
+                <li>
+                  Train both traditional U-Net and Partial Convolution U-Net on masked images for
+                  <strong>10 epochs</strong>.
+                </li>
+
+                <li>
+                  Fine-tune the models with the PatchGAN discriminator for another
+                  <strong>10 epochs</strong> to improve realism.
+                </li>
+
+                <li>
+                  Losses:
+                  <ul>
+                    <li><strong>L1 loss</strong> on the hole region and full image.</li>
+                    <li><strong>Perceptual loss (LPIPS)</strong> to better match human perception of similarity.</li>
+                    <li><strong>Adversarial loss</strong> from the PatchGAN for sharper textures.</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </div>
+      </div>
+    </section>
+
+    <section id="results">
+      <h2>Results</h2>
+      <p>
+        The final <strong>Partial Convolution U-Net with PatchGAN Discriminator</strong>
+        demonstrates strong inpainting ability across a wide variety of damaged images.
+        The model fills missing regions with content that is not only plausible but
+        also visually coherent with the valid parts of the images.
+      </p>
+      <ul>
+        <li>
+          <strong>High-resolution detail:</strong> The network reconstructs missing
+          regions with sharp edges, fine textures, and good structural features,
+          producing results suitable for high-resolution images.
+        </li>
+        <li>
+          <strong>Color consistency:</strong> Inpainted areas naturally blend with
+          surrounding regions without visible seams or sudden color shifts.
+        </li>
+        <li>
+          <strong>Texture realism:</strong> PatchGAN fine-tuning enhances local
+          textures, which makes reconstructed patches more vivid rather than blurry.
+        </li>
+      </ul>
+
+      <h3>Comparison with Baseline U-Net</h3>
+        <div class="results-grid">
+          <div class="placeholder-card">
+            <strong>Baseline U-Net</strong>
+            <ul>
+              <li>Often reconstructs correct general colors, but regions are blurry and lack of details.</li>
+              <li>Edges at the hole boundary can be smeared.</li>
+              <li>Fine textures (hair, leaves, text) are poorly recovered.</li>
+            </ul>
+            <img src="https://drive.google.com/thumbnail?id=1_hidUKmo3uv98lWa-Ewiqu2eHMT_hYu2&sz=w800"
+                alt="Baseline U-Net Output"
+                style="width:100%; max-width:500px; display:block; margin-top: 4.5rem; border-radius:6px;">
+          </div>
+          <div class="placeholder-card">
+            <strong>PartialConv U-Net + PatchGAN</strong>
+            <ul>
+              <li>Better texture detail, especially on natural scenes (grass, foliage, fabric).</li>
+              <li>Sharper edges and more coherent object boundaries in the inpainted region.</li>
+              <li>Fewer artifacts near the mask edges; transitions look more natural.</li>
+            </ul>
+            <img src="https://drive.google.com/thumbnail?id=1rGPzYTKl43oiUAfuBI9L0bMMrtgx-HB4&sz=w800"
+                alt="PartialConv U-Net Output"
+                style="width:100%; max-width:500px; display:block; margin:1.75rem auto 0; border-radius:6px;">
+          </div>
+
+        </div>
+
+
+    </section>
+    <section id="discussion">
+      <h2>Discussion &amp; Problems Encountered</h2>
+
+      <h3>Challenges During Implementing</h3>
+      <ul>
+        <li>
+          <strong>Blurry outputs:</strong> Early models trained only with L1 loss
+          produced blurry inpainted regions. Adding partial convolutions and
+          PatchGAN significantly reduced this blur.
+        </li>
+        <li>
+          <strong>Irregular Mask:</strong>
+          At beginning, we use rectangular masks that are too simple and do not reflect real photo damage, which makes inpainting results not ideal.
+          To address this difficulty, we designed an irregular mask generator that produces more natural and challenging patterns.
+          Our method samples a few random control points and connects them using spline curves to form smooth, free-form strokes.
+          We draw these spline paths as thick lines to remove pixels, and occasionally add small blobs to mimic real scratches or smudges.
+        </li>
+      </ul>
+
+      <h3>Future Work</h3>
+      <ul>
+        <li>
+          If we can get more computing resources, we can train the model with larger dataset 
+          and more epochs to get better results.
+        </li>
+        <li>
+          Explore <strong>diffusion-based inpainting</strong> as a comparison
+          model to see how much additional detail it can recover.
+        </li>
+      </ul>
+    </section>
+
+    <section id="timeline">
+      <h2>Project Timeline</h2>
+      <ul class="timeline">
+        <li><span>Oct 15</span>Implement U-Net generator with partial convolutions and test rectangular mask logic.</li>
+        <li><span>Nov 1</span>Integrate PatchGAN discriminator and prepare midterm report.</li>
+        <li><span>Nov 15</span>Train the full model on the selected dataset with irregular masking technique.</li>
+        <li><span>Dec 1</span>Finalize results of the models and prepare for presentation.</li>
+        <li><span>Dec 10</span>Finalize the webpage.</li>
+      </ul>
+    </section>
+
+    <section id="presentation">
+      <h2>Project Presentation</h2>
+      <div class="video-container">
+        <iframe
+          src="https://drive.google.com/file/d/1s-i5ldXQoWXjkbRJGnrcrS-L4GGLyAYU/preview"
+          allow="autoplay"
+        ></iframe>
+      </div>
+      <p class="slides-link">
+        <a href="https://drive.google.com/file/d/15SqFJj5_SxQVkQ3qVmK3uBQ9PjPCVkbh/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+          View project slides
+        </a>
+      </p>
+    </section>
+
+    <section id="training-code">
+      <header class="training-code__header">
+        <h2>Training Code</h2>
+        <p>Explore our code, training logs, and results.</p>
+      </header>
+
+      <nav class="training-code__nav" aria-label="Interactive notebooks">
+        <ul class="training-code__list">
+          <li class="training-code__item">
+            <a
+              href="https://github.com/asdjfw124/ImpaintingDamagedImages/blob/40e128852869a7da67a36481d61b7e059b1111df/base_rect%20.ipynb"
+              target="_blank"
+              class="training-code__link"
+            >
+              Baseline U-Net (Rectangular Mask)
+            </a>
+          </li>
+          <li class="training-code__item">
+            <a
+              href="https://github.com/asdjfw124/ImpaintingDamagedImages/blob/40e128852869a7da67a36481d61b7e059b1111df/base_irre%20.ipynb"
+              target="_blank"
+              class="training-code__link"
+            >
+              Baseline U-Net (Irregular Mask)
+            </a>
+          </li>
+          <li class="training-code__item">
+            <a
+              href="https://github.com/asdjfw124/ImpaintingDamagedImages/blob/40e128852869a7da67a36481d61b7e059b1111df/pconv_rect.ipynb"
+              target="_blank"
+              class="training-code__link"
+            >
+              Partial Conv U-Net (Rectangular Mask)
+            </a>
+          </li>
+          <li class="training-code__item">
+            <a
+              href="https://github.com/asdjfw124/ImpaintingDamagedImages/blob/355644e301944707af102090455e93feaab748f1/pconv_irre.ipynb"
+              target="_blank"
+              class="training-code__link"
+            >
+              Partial Conv U-Net (Irregular Mask)
+            </a>
+          </li>
+          </li>
+          <li class="training-code__item">
+            <a
+              href="https://github.com/asdjfw124/ImpaintingDamagedImages/blob/355644e301944707af102090455e93feaab748f1/create_dataset.py"
+              target="_blank"
+              class="training-code__link"
+            >
+              Dataset Creation
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </section>
+
+    <section id="references">
+      <h2>References</h2>
+      <ul>
+        <li>
+          Liu, G., Reda, F. A., Shih, K. J., Wang, T.-C., Tao, A., & Catanzaro, B. (2018, December 15).
+          <em>Image inpainting for irregular holes using partial convolutions.</em>
+          arXiv.org. https://arxiv.org/abs/1804.07723
+        </li>
+
+        <li>
+          Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18).
+          <em>U-NET: Convolutional Networks for Biomedical Image Segmentation.</em>
+          arXiv.org. https://arxiv.org/abs/1505.04597
+        </li>
+
+        <li>
+          Phuc, H. (2025, March 4).
+          <em>ILSVRC2012.</em>
+          Kaggle. https://www.kaggle.com/datasets/thbdh5765/ilsvrc2012
+        </li>
+
+        <li>
+          Roy, P., Bhattacharya, S., Ghosh, S., & Pal, U. (2025, February 18).
+          <em>Multi-scale attention guided pose transfer.</em>
+          arXiv.org. https://arxiv.org/abs/2202.06777
+        </li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
